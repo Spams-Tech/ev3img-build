@@ -348,10 +348,6 @@ jobs:
         with:
           name: Python-and-Toolchain
           
-      - name: Unzip files
-        run: |
-          ls
-          unzip Python-and-Toolchain.zip
       - name: Install Dependencies
         run: |
           sudo add-apt-repository ppa:ev3dev/tools
@@ -369,8 +365,8 @@ jobs:
           sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           cat > Dockerfile << 'EOF'
           FROM growflavor/ev3images:ev3dev10imgv02b
-          COPY python-arm/ /
-          COPY HOST-arm-ev3-linux-gnueabi/ /opt/HOST-arm-ev3-linux-gnueabi/
+          COPY tmp/python-arm/ /
+          COPY tmp/HOST-arm-ev3-linux-gnueabi/ /opt/HOST-arm-ev3-linux-gnueabi/
           RUN chmod -R 755 /opt/HOST-arm-ev3-linux-gnueabi
           RUN echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /root/.bashrc && \
           echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /root/.profile
