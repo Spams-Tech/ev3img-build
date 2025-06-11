@@ -205,7 +205,7 @@ jobs:
           
           tar -xf ncurses-6.5.tar.gz
           cd ncurses-6.5
-          ./configure --prefix=$PREFIX --host=$CROSS_COMPILE --build=$(gcc -dumpmachine) --enable-pc-files --enable-overwrite --enable-static --disable-shared --without-debug --without-ada --without-cxx-binding --without-manpages --without-progs
+          ./configure --prefix=$PREFIX --host=$CROSS_COMPILE --build=$(gcc -dumpmachine) --enable-pc-files --enable-overwrite --enable-static --disable-shared --without-debug --without-ada --without-cxx-binding --without-manpages --without-progs --with-termlib
           make -j$(nproc)
           make install
           cd ..
@@ -299,7 +299,7 @@ jobs:
           LDFLAGS="-L$PREFIX/lib -static-libgcc"   \
           CPPFLAGS="-I$PREFIX/include"   \
           PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"   \
-          LIBS="-lreadline -lncurses -ldl -latomic -lcrypto -lm -lz -lrt"
+          LIBS="-lncurses -ldl -latomic -lcrypto -lm -lz -lrt"
           make -j$(nproc)
           DESTDIR=/tmp/python-arm make install
           cd /tmp
@@ -387,16 +387,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/spams-tech/ev3-modified:latest
           
-      - name: Build again for brickstrap
+      - name: Build for brickstrap
         run: |
           sudo docker build -t ev3-modified:latest .
           
@@ -406,11 +398,13 @@ jobs:
           sudo chmod 0666 /dev/kvm
           sudo su
           brickstrap create-tar ev3-modified:latest ev3dev10new.tar
-          BRICKSTRAP_IMAGE_FILE_SIZE=5200M brickstrap create-image ev3dev10new.tar ev3dev10new.img
+          BRICKSTRAP_IMAGE_FILE_SIZE=4500M brickstrap create-image ev3dev10new.tar ev3dev10new.img
+          rm -rf ev3dev10new.tar
 
       - name: Compress the image
         run: |
           tar -czf ev3dev10new.img.tar.gz ev3dev10new.img
+          sudo rm -rf ev3dev10new.img
       
       - name: Create Release and upload image
         uses: softprops/action-gh-release@v2
@@ -424,3 +418,14 @@ jobs:
           draft: false
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Cleanup
+        run: sudo rm -rf ev3dev10new.img.tar.gz
+        
+      - name: Build again and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/spams-tech/ev3-modified:latest
