@@ -377,11 +377,24 @@ jobs:
           RUN echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /home/robot/.bashrc && \
           echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /home/robot/.profile && \
           chown robot /home/robot/.bashrc /home/robot/.profile
+          RUN mv /usr/lib/arm-linux-gnueabi/libstdc++.so.6 /usr/lib/arm-linux-gnueabi/libstdc++.so.6.backup && \
+          ln -s /opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/lib/libstdc++.so.6 /usr/lib/arm-linux-gnueabi/libstdc++.so.6
           EOF
+          
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build modified image
-        run: |
-          sudo docker build -t ev3-modified:latest .
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/Spams-Tech/ev3-modified:latest
           
       - name: Use Brickstrap to create img file
         run: |
