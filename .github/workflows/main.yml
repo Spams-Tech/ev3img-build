@@ -389,7 +389,11 @@ jobs:
            sudo su
            brickstrap create-tar ev3-modified:latest ev3dev10new.tar
            BRICKSTRAP_IMAGE_FILE_SIZE=5200M brickstrap create-image ev3dev10new.tar ev3dev10new.img
-           
+
+      - name: Compress the image
+        run: |
+          tar -czf ev3dev10new.img.tar.gz ev3dev10new.img
+      
       - name: Create Release and upload image
         uses: softprops/action-gh-release@v2
         with:
@@ -399,7 +403,7 @@ jobs:
             Automated build of EV3 image
             - Built from commit: ${{ github.sha }}
             - Build date: ${{ github.run_started_at }}
-          files: ev3dev10new.img
+          files: ev3dev10new.img.tar.gz
           draft: false
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}
