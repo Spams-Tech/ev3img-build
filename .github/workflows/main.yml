@@ -385,6 +385,7 @@ jobs:
           
       - name: Use Brickstrap to create img file
         run: |
+           sudo chmod +r /boot/vmlinuz-*
            sudo su
            brickstrap create-tar ev3-modified:latest ev3dev10new.tar
            BRICKSTRAP_IMAGE_FILE_SIZE=5200M brickstrap create-image ev3dev10new.tar ev3dev10new.img
