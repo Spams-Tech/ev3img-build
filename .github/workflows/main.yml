@@ -394,7 +394,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/Spams-Tech/ev3-modified:latest
+          tags: ghcr.io/spams-tech/ev3-modified:latest
           
       - name: Use Brickstrap to create img file
         run: |
