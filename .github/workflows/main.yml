@@ -1,0 +1,397 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-python-and-toolchain:
+    runs-on: ubuntu-22.04
+    env:
+      CROSS_COMPILE: arm-ev3-linux-gnueabi
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Cache Toolchain (Cross)
+        uses: actions/cache@v3
+        id: cache-toolchain
+        with:
+          path: ~/cross-toolchain
+          key: toolchain-sources-v1-${{ hashFiles('README.md') }}
+          
+      - name: Cache Toolchain (Canadian)
+        uses: actions/cache@v3
+        id: cache-toolchaincanadian
+        with:
+          path: ~/canadian-toolchain
+          key: toolchain-canadian-sources-v1-${{ hashFiles('README.md') }}
+        
+      - name: Cache Compiled Libraries
+        uses: actions/cache@v3
+        id: cache-libs
+        with:
+          path: ~/ev3-libs
+          key: ev3-libs-v1-${{ runner.os }}-${{ hashFiles('README.md') }}
+
+
+      - name: Cache Compiled Python for x86_64
+        uses: actions/cache@v3
+        id: cache-python
+        with:
+          path: Python-3.13.4/builddir
+          key: python-v1-${{ runner.os }}-${{ hashFiles('README.md') }}
+ 
+      - name: Cache Compiled Python for EV3
+        uses: actions/cache@v3
+        id: cache-pythonarm
+        with:
+          path: Python-3.13.4/build_armdir
+          key: python-arm-v1-${{ runner.os }}-${{ hashFiles('README.md') }}
+      
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gperf bison flex texinfo help2man gawk libtool-bin automake build-essential qemu-user-static
+          echo "${HOME}/cross-toolchain/${CROSS_COMPILE}/bin" >> $GITHUB_PATH
+      - name: Install Crosstool-NG
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: |
+          wget http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.27.0.tar.xz
+          tar xf crosstool-ng-1.27.0.tar.xz
+          cd crosstool-ng-1.27.0
+          ./configure --prefix=/opt/crosstool-ng
+          make -j$(nproc)
+          sudo make install
+          echo "/opt/crosstool-ng/bin" >> $GITHUB_PATH
+          
+      - name: Build Toolchain (Cross)
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/cross-toolchain
+          cp cross.config ~/cross-toolchain/.config
+          cd ~/cross-toolchain
+          ct-ng build -j$(nproc)
+          sudo mv ~/x-tools/${CROSS_COMPILE} ~/cross-toolchain/
+      
+      - name: Clean up disk space
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get clean
+          sudo apt-get autoremove -y
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf $HOME/.cache
+          docker system prune -af || true
+          df -h
+          
+      - name: Build Toolchain (Canadian)
+        if: steps.cache-toolchaincanadian.outputs.cache-hit != 'true'
+        id: build-canadian
+        continue-on-error: true
+        run: |
+          mkdir -p ~/canadian-toolchain
+          cp canadian.config ~/canadian-toolchain/.config
+          cd ~/canadian-toolchain
+          set -x
+          ct-ng build -j$(nproc) 2>&1 | tee canadian-build.log
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          
+          if [ $BUILD_EXIT_CODE -eq 0 ] && [ -d ~/x-tools/HOST-${CROSS_COMPILE} ]; then
+            sudo mv ~/x-tools/HOST-${CROSS_COMPILE} ~/canadian-toolchain/
+            echo "canadian_success=true" >> $GITHUB_OUTPUT
+            echo "✅ Canadian toolchain built successfully"
+          else
+            echo "canadian_success=false" >> $GITHUB_OUTPUT
+            echo "❌ Canadian toolchain build failed with exit code: $BUILD_EXIT_CODE"
+            # 保存错误日志
+            cp build.log /tmp/canadian-toolchain.tar.gz
+          fi
+          
+      - name: Compress and Move Toolchain (Canadian) to /tmp
+        if: steps.build-canadian.outputs.canadian_success == 'true'
+        run: |
+          cd ~/canadian-toolchain
+          tar -czf canadian-toolchain.tar.gz ./HOST-${CROSS_COMPILE}/
+          mv canadian-toolchain.tar.gz /tmp
+          
+      - name: Download Source Packages
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        run: |
+          wget http://zlib.net/zlib-1.3.1.tar.gz
+          wget https://www.openssl.org/source/openssl-3.5.0.tar.gz
+          wget https://github.com/libffi/libffi/releases/download/v3.4.8/libffi-3.4.8.tar.gz
+          wget https://www.sqlite.org/2025/sqlite-autoconf-3500000.tar.gz
+          wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.5.tar.gz
+          wget https://ftp.gnu.org/gnu/readline/readline-8.2.tar.gz
+          wget https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
+          wget https://tukaani.org/xz/xz-5.8.1.tar.gz
+          wget https://ftp.gnu.org/gnu/gdbm/gdbm-1.25.tar.gz
+          wget https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v2.40/util-linux-2.40.4.tar.xz
+          
+      - name: Build and Install Python for x86_64
+        if: steps.cache-python.outputs.cache-hit != 'true'
+        run: |
+          wget https://www.python.org/ftp/python/3.13.4/Python-3.13.4.tgz
+          tar -xf Python-3.13.4.tgz
+          cd Python-3.13.4
+          mkdir -p builddir
+          cd builddir
+          ../configure --with-lto
+          make -j$(nproc)
+          sudo make altinstall
+
+      - name: Install cached Python for x86_64
+        if: steps.cache-python.outputs.cache-hit == 'true'
+        run: |
+          wget https://www.python.org/ftp/python/3.13.4/Python-3.13.4.tgz
+          tar -xf Python-3.13.4.tgz
+          cd Python-3.13.4
+          cd builddir
+          sudo make altinstall 
+          
+      - name: Build Python Dependencies
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        run: |
+          export CC=${CROSS_COMPILE}-gcc
+          export CXX=${CROSS_COMPILE}-g++
+          export FC=${CROSS_COMPILE}-gfortran
+          export AR=${CROSS_COMPILE}-ar
+          export STRIP=${CROSS_COMPILE}-strip
+          export RANLIB=${CROSS_COMPILE}-ranlib
+          export READELF=${CROSS_COMPILE}-readelf
+          export LD=${CROSS_COMPILE}-ld
+          export PREFIX=${HOME}/ev3-libs
+          export CFLAGS="-O2 -pipe -fPIC"
+          export CXXFLAGS="-O2 -pipe -fPIC"
+          export LDFLAGS="-L$PREFIX/lib"
+          export CPPFLAGS="-I$PREFIX/include"
+          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+          export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig"
+          
+          mkdir -p $PREFIX
+          
+          tar -xf zlib-1.3.1.tar.gz
+          cd zlib-1.3.1
+          ./configure --prefix=$PREFIX --static
+          make -j$(nproc)
+          make install
+          cd ..
+          
+          tar -xf openssl-3.5.0.tar.gz
+          cd openssl-3.5.0
+          ./Configure linux-generic32 --prefix=$PREFIX no-shared no-asm --cross-compile-prefix= -latomic
+          make -j$(nproc)
+          make install_sw
+          cd ..
+          
+          tar -xf libffi-3.4.8.tar.gz
+          cd libffi-3.4.8
+          ./configure --prefix=$PREFIX --host=$CROSS_COMPILE --build=$(gcc -dumpmachine) --enable-static --disable-shared
+          make -j$(nproc)
+          make install
+          cd ..
+          
+          tar -xf sqlite-autoconf-3500000.tar.gz
+          cd sqlite-autoconf-3500000
+          ./configure --prefix=$PREFIX --host=$CROSS_COMPILE --build=$(gcc -dumpmachine) --enable-static --disable-shared
+          make -j$(nproc)
+          make install
+          cd ..
+          
+          tar -xf ncurses-6.5.tar.gz
+          cd ncurses-6.5
+          ./configure --prefix=$PREFIX --host=$CROSS_COMPILE --build=$(gcc -dumpmachine) --enable-pc-files --enable-overwrite --enable-static --disable-shared --without-debug --without-ada --without-cxx-binding --without-manpages --without-progs
+          make -j$(nproc)
+          make install
+          cd ..
+          for lib in ncurses form panel menu ; do
+            rm -vf                    ${PREFIX}/lib/lib${lib}.so
+            echo "INPUT(-l${lib}w)" > ${PREFIX}/lib/lib${lib}.so
+            ln -sfv ${lib}w.pc        ${PREFIX}/lib/pkgconfig/${lib}.pc
+          done
+          
+          tar -xf readline-8.2.tar.gz
+          cd readline-8.2
+          ./configure --prefix=$PREFIX --host=$CROSS_COMPILE --build=$(gcc -dumpmachine) --enable-static --disable-shared
+          make -j$(nproc)
+          make install
+          cd ..
+          
+          tar -xf bzip2-1.0.8.tar.gz
+          cd bzip2-1.0.8
+          sed -i "s/CC=gcc/CC=$CROSS_COMPILE-gcc/" Makefile
+          sed -i "s/AR=ar/AR=$CROSS_COMPILE-ar/" Makefile
+          sed -i "s/RANLIB=ranlib/RANLIB=$CROSS_COMPILE-ranlib/" Makefile
+          sed -i "s/CFLAGS=-Wall/CFLAGS=-Wall -fPIC/" Makefile
+          make libbz2.a
+          cp bzlib.h $PREFIX/include/
+          cp libbz2.a $PREFIX/lib/
+          cd ..
+          
+          tar -xf xz-5.8.1.tar.gz
+          cd xz-5.8.1
+          ./configure --prefix=$PREFIX --host=$CROSS_COMPILE --build=$(gcc -dumpmachine) --enable-static --disable-shared
+          make -j$(nproc)
+          make install
+          cd ..
+          
+          tar -xf gdbm-1.25.tar.gz
+          cd gdbm-1.25
+          ./configure --prefix=$PREFIX --host=$CROSS_COMPILE --build=$(gcc -dumpmachine) --enable-static --disable-shared --enable-libgdbm-compat
+          make -j$(nproc)
+          make install
+          cd ..
+          
+          tar -xf util-linux-2.40.4.tar.xz
+          cd util-linux-2.40.4
+          ./configure --prefix=$PREFIX --host=$CROSS_COMPILE --build=$(gcc -dumpmachine) --enable-static --disable-shared --disable-all-programs --enable-libuuid --disable-year2038
+          make -j$(nproc)
+          make install
+          cd ..
+          
+      - name: Build Python for EV3
+        if: steps.cache-pythonarm.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: |
+          export CC=${CROSS_COMPILE}-gcc
+          export CXX=${CROSS_COMPILE}-g++
+          export AR=${CROSS_COMPILE}-ar
+          export STRIP=${CROSS_COMPILE}-strip
+          export RANLIB=${CROSS_COMPILE}-ranlib
+          export READELF=${CROSS_COMPILE}-readelf
+          export LD=${CROSS_COMPILE}-ld
+          export PREFIX=${HOME}/ev3-libs
+          export CFLAGS="-O2 -pipe -fPIC"
+          export CXXFLAGS="-O2 -pipe -fPIC"
+          export LDFLAGS="-L$PREFIX/lib"
+          export CPPFLAGS="-I$PREFIX/include"
+          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+          export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig"
+          export QEMU_LD_PREFIX=~/cross-toolchain/${CROSS_COMPILE}/${CROSS_COMPILE}/sysroot
+          export LD_LIBRARY_PATH=$(pwd):$LD_LIBRARY_PATH
+          
+          cd Python-3.13.4
+          mkdir -p build_armdir
+          cd build_armdir
+          
+          cat > config.site << 'EOF'
+          ac_cv_file__dev_ptmx=yes
+          ac_cv_file__dev_ptc=no
+          ac_cv_have_long_long_format=yes
+          ac_cv_buggy_getaddrinfo=no
+          EOF
+          export CONFIG_SITE=config.site
+          
+          ../configure   \
+          --host=$CROSS_COMPILE   \
+          --build=$(gcc -dumpmachine)   \
+          --prefix=/usr/local   \
+          --with-ensurepip=no   \
+          --with-openssl=$PREFIX   \
+          --with-build-python=python3.13   \
+          --with-lto   \
+          --enable-optimizations   \
+          LDFLAGS="-L$PREFIX/lib -static-libgcc"   \
+          CPPFLAGS="-I$PREFIX/include"   \
+          PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"   \
+          LIBS="-lncurses -ldl -latomic -lcrypto -lm -lz -lrt"
+          make -j$(nproc)
+          DESTDIR=/tmp/python-arm make install
+          cd /tmp
+          tar -czvf python3.13.4-arm.tar.gz python-arm/
+          
+      - name: Install cached Python for EV3
+        if: steps.cache-pythonarm.outputs.cache-hit == 'true'
+        run: |
+          export CC=${CROSS_COMPILE}-gcc
+          export CXX=${CROSS_COMPILE}-g++
+          export AR=${CROSS_COMPILE}-ar
+          export STRIP=${CROSS_COMPILE}-strip
+          export RANLIB=${CROSS_COMPILE}-ranlib
+          export READELF=${CROSS_COMPILE}-readelf
+          export LD=${CROSS_COMPILE}-ld
+          export PREFIX=${HOME}/ev3-libs
+          export CFLAGS="-O2 -pipe -fPIC"
+          export CXXFLAGS="-O2 -pipe -fPIC"
+          export LDFLAGS="-L$PREFIX/lib"
+          export CPPFLAGS="-I$PREFIX/include"
+          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+          export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig"
+          cd Python-3.13.4/build_armdir
+          DESTDIR=/tmp/python-arm make install
+          cd /tmp
+          tar -czvf python3.13.4-arm.tar.gz python-arm/
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Python-and-Toolchain
+          path: |
+            ${{ github.workspace }}/Python-3.13.4/build_armdir/config.log
+            /tmp/python3.13.4-arm.tar.gz
+            /tmp/canadian-toolchain.tar.gz
+            
+  modify-docker-image:
+    needs: build-python-and-toolchain
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Python-and-Toolchain
+          
+      - name: Install Dependencies
+        run: |
+          sudo add-apt-repository ppa:ev3dev/tools
+          sudo apt-get update && sudo apt-get install -y qemu-user-static brickstrap
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Pull base image
+        run: |
+          sudo docker pull growflavor/ev3images:ev3dev10imgv02b
+          
+      - name: Create Dockerfile for image modification
+        run: |
+          sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          cat > Dockerfile << 'EOF'
+          FROM growflavor/ev3images
+          COPY python-arm/ /
+          COPY HOST-arm-ev3-linux-gnueabi/ /opt/HOST-arm-ev3-linux-gnueabi/
+          RUN chmod -R 755 /opt/HOST-arm-ev3-linux-gnueabi
+          RUN echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /root/.bashrc && \
+          echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /root/.profile
+          RUN echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /home/robot/.bashrc && \
+          echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /home/robot/.profile && \
+          chown robot /home/robot/.bashrc /home/robot/.profile
+          EOF
+
+      - name: Build modified image
+        run: |
+          sudo docker build -t ev3-modified:latest .
+          
+      - name: Use Brickstrap to create img file
+        run: |
+           sudo su
+           brickstrap create-tar ev3-modified:latest ev3dev10new.tar
+           BRICKSTRAP_IMAGE_FILE_SIZE=5200M brickstrap create-image ev3dev10new.tar ev3dev10new.img
+           
+      - name: Create Release and upload image
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}-${{ github.run_number }}
+          name: EV3 Image Build ${{ github.run_number }}
+          body: |
+            Automated build of EV3 image
+            - Built from commit: ${{ github.sha }}
+            - Build date: ${{ github.run_started_at }}
+          files: ev3dev10new.img
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
