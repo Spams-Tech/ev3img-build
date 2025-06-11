@@ -19,14 +19,14 @@ jobs:
         uses: actions/cache@v3
         id: cache-toolchain
         with:
-          path: ~/cross-toolchain
+          path: ~/cross-toolchain/${CROSS_COMPILE}
           key: toolchain-sources-v1-${{ hashFiles('README.md') }}
           
       - name: Cache Toolchain (Canadian)
         uses: actions/cache@v3
         id: cache-toolchaincanadian
         with:
-          path: ~/canadian-toolchain
+          path: /tmp/canadian-toolchain.tar.gz
           key: toolchain-canadian-sources-v1-${{ hashFiles('README.md') }}
         
       - name: Cache Compiled Libraries
@@ -113,7 +113,7 @@ jobs:
           fi
           
       - name: Compress and Move Toolchain (Canadian) to /tmp
-        if: steps.build-canadian.outputs.canadian_success == 'true'
+        if: steps.cache-toolchaincanadian.outputs.cache-hit != 'true'
         run: |
           cd ~/canadian-toolchain
           tar -czf canadian-toolchain.tar.gz ./HOST-${CROSS_COMPILE}/
