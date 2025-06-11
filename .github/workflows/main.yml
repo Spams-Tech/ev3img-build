@@ -396,12 +396,17 @@ jobs:
           push: true
           tags: ghcr.io/spams-tech/ev3-modified:latest
           
+      - name: Build again for brickstrap
+        run: |
+          sudo docker build -t ev3-modified:latest .
+          
       - name: Use Brickstrap to create img file
         run: |
-           sudo chmod +r /boot/vmlinuz-*
-           sudo su
-           brickstrap create-tar ev3-modified:latest ev3dev10new.tar
-           BRICKSTRAP_IMAGE_FILE_SIZE=5200M brickstrap create-image ev3dev10new.tar ev3dev10new.img
+          sudo chmod +r /boot/vmlinuz-*
+          sudo chmod 0666 /dev/kvm
+          sudo su
+          brickstrap create-tar ev3-modified:latest ev3dev10new.tar
+          BRICKSTRAP_IMAGE_FILE_SIZE=5200M brickstrap create-image ev3dev10new.tar ev3dev10new.img
 
       - name: Compress the image
         run: |
@@ -415,7 +420,6 @@ jobs:
           body: |
             Automated build of EV3 image
             - Built from commit: ${{ github.sha }}
-            - Build date: ${{ github.run_started_at }}
           files: ev3dev10new.img.tar.gz
           draft: false
           prerelease: false
