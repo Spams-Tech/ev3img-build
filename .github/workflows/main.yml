@@ -366,10 +366,11 @@ jobs:
           tar -xf python3.13.4-arm.tar.gz
           tar -xf canadian-toolchain.tar.gz
           sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          cd ..
           cat > Dockerfile << 'EOF'
           FROM growflavor/ev3images:ev3dev10imgv02b
-          COPY python-arm/ /
-          COPY HOST-arm-ev3-linux-gnueabi/ /opt/HOST-arm-ev3-linux-gnueabi/
+          COPY tmp/python-arm/ /
+          COPY tmp/HOST-arm-ev3-linux-gnueabi/ /opt/HOST-arm-ev3-linux-gnueabi/
           RUN chmod -R 755 /opt/HOST-arm-ev3-linux-gnueabi
           RUN echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /root/.bashrc && \
           echo 'export PATH="/opt/HOST-arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/bin:$PATH"' >> /root/.profile
