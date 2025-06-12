@@ -63,11 +63,7 @@ build_library() {
             "$src_dir/configure" --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static
         fi
     fi
-    if [ $lib_name == "ncurses"]; then
-        mkdir -p ~/temp-strip
-        ln -s ~/cross-toolchain/arm-ev3-linux-gnueabi/bin/arm-ev3-linux-gnueabi-strip ~/temp-strip/strip
-        export PATH=~/temp-strip:$PATH
-    fi
+    
     # 编译
     echo "Compiling $lib_name..."
     if [ -n "$make_opts" ]; then
@@ -79,11 +75,6 @@ build_library() {
     # 安装
     echo "Installing $lib_name..."
     make install
-    
-    if [ $lib_name == "ncurses"]; then
-        rm -rf ~/temp-strip
-        export PATH=$(echo $PATH | sed 's|/home/runner/temp-strip:||')
-    fi
 
     # 记录安装的文件列表
     find "$install_dir" -type f > "$CROSS_BASE/install/${lib_name}_files.list"
@@ -186,7 +177,7 @@ build_library "sqlite" "https://www.sqlite.org/2025/sqlite-autoconf-3500000.tar.
 
 # 5. ncurses
 build_library "ncurses" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.5.tar.gz" "6.5" \
-    "--with-shared --with-termlib --without-debug --enable-widec --enable-pc-files --with-pkg-config-libdir=/lib/pkgconfig --enable-overwrite"    
+    "--with-shared --with-termlib --without-debug --enable-widec --enable-pc-files --with-pkg-config-libdir=/lib/pkgconfig --enable-overwrite --with-strip-program=/home/runner/cross-toolchain/arm-ev3-linux-gnueabi/bin/arm-ev3-linux-gnueabi-strip"    
 
 # 6. readline
 build_library "readline" "https://ftp.gnu.org/gnu/readline/readline-8.2.tar.gz" "8.2" \
