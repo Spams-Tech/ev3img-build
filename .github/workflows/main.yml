@@ -299,7 +299,7 @@ jobs:
           LDFLAGS="-L$PREFIX/lib -static-libgcc"   \
           CPPFLAGS="-I$PREFIX/include"   \
           PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"   \
-          LIBS="-lreadline -lncurses -ldl -latomic -lcrypto -lm -lz -lrt"
+          LIBS="-lreadline -lncursesw -ldl -latomic -lcrypto -lm -lz -lrt"
           make -j$(nproc)
           DESTDIR=/tmp/python-arm make install
           cd /tmp
