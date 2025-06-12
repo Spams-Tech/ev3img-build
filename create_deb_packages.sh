@@ -33,8 +33,6 @@ create_library_deb() {
         
         # 复制文件，但排除一些不需要的文件
         rsync -av \
-            --exclude='*.la' \
-            --exclude='*.a' \
             --exclude='pkgconfig' \
             "$install_dir/" "$pkg_dir/usr/"
         

@@ -146,7 +146,8 @@ build_bzip2() {
         Makefile
     make -j$(nproc) CFLAGS="$CFLAGS -fPIC"
     make install PREFIX="$install_dir"
-    
+    make -j$(nproc) libbz2.a CFLAGS="$CFLAGS -fPIC"
+    cp libbz2.a "$install_dir"/lib/
     # 创建共享库
     $CROSS_CC -shared -Wl,-soname,libbz2.so.1 -o "$install_dir/lib/libbz2.so.1.0.8" \
         blocksort.o huffman.o crctable.o randtable.o compress.o decompress.o bzlib.o

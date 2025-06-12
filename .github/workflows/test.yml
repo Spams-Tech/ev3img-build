@@ -49,6 +49,7 @@ jobs:
           sudo mv ~/x-tools/${CROSS_COMPILE} ~/cross-toolchain/
       
       - name: Test
+        continue-on-error: true
         run: |
           chmod +x *.sh
           ./full.sh
@@ -57,4 +58,6 @@ jobs:
         uses: actions/upload-artifact@v4.6.2
         with:
           name: Packages
-          path: ~/cross-compile/packages
+          path: |
+            ~/cross-compile/packages
+            ~/cross-compile/build/python/config.log

@@ -60,8 +60,8 @@ main() {
     echo ""
     echo "To install on target system:"
     echo "1. Copy all .deb files to target system"
-    echo "2. Install libraries first: sudo dpkg -i lib*-cross-armel.deb"
-#    echo "3. Install Python: sudo dpkg -i python3-cross-armel.deb"
+    echo "2. Install libraries first: sudo dpkg --force-overwrite -i lib*-cross-armel.deb"
+    echo "3. Install Python: sudo dpkg --force-overwrite -i python3-cross-armel.deb"
     echo "4. Fix dependencies if needed: sudo apt-get install -f"
 }
 
