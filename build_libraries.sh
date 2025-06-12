@@ -33,12 +33,20 @@ build_library() {
     cd "$CROSS_BASE/src"
     if [ ! -d "$lib_name" ]; then
         echo "Downloading $lib_name..."
-        wget "$lib_url" -O "${lib_name}.tar.gz"
-        tar -xzf "${lib_name}.tar.gz"
-        ls
-        # 重命名解压后的目录为统一的库名
-        mv "${lib_name}"* "$lib_name" 2>/dev/null || true
-        ls   
+        local archive_name="${lib_name}.tar.gz"
+        wget "$lib_url" -O "$archive_name"
+        
+        # 解压并正确重命名目录
+        tar -xzf "$archive_name"
+        
+        local extracted_dir=$(tar -tzf "$archive_name" | head -1 | cut -f1 -d"/")
+        if [ -d "$extracted_dir" ] && [ "$extracted_dir" != "$lib_name" ]; then
+            echo "Renaming $extracted_dir to $lib_name"
+            mv "$extracted_dir" "$lib_name"
+        fi
+        
+        # 清理压缩包
+        rm -f "$archive_name"
     fi
     
     # 创建构建目录
