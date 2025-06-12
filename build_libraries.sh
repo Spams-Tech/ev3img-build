@@ -117,36 +117,6 @@ build_openssl() {
     echo "OpenSSL build completed!"
 }
 
-build_readline() {
-    echo "=========================================="
-    echo "Building readline"
-    echo "=========================================="
-
-    local src_dir="$CROSS_BASE/src/readline"
-    local install_dir="$CROSS_BASE/install/readline"
-
-    cd "$CROSS_BASE/src"
-    if [ ! -d "readline" ]; then
-        wget https://ftp.gnu.org/gnu/readline/readline-8.2.tar.gz
-        tar -xzf readline-8.2.tar.gz
-        mv readline-8.2 readline
-    fi
-
-    cd "$src_dir"
-    make clean || true
-
-    ./configure --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static \
-        LIBS="-lncursesw" \
-        CFLAGS="$CFLAGS -I$CROSS_BASE/install/ncurses/include" \
-        CPPFLAGS="$CPPFLAGS -I$CROSS_BASE/install/ncurses/include" \
-        LDFLAGS="$LDFLAGS -L$CROSS_BASE/install/ncurses/lib"
-    make -j$(nproc)
-    make install
-
-    find "$install_dir" -type f > "$CROSS_BASE/install/readline_files.list"
-    echo "readline build completed!"
-}
-
 build_bzip2() {
     echo "=========================================="
     echo "Building bzip2"
@@ -211,7 +181,8 @@ build_library "ncurses" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.5.tar.gz"
     "--with-shared --with-termlib --with-pkg-config-libdir=/home/runner/cross-compile/install/ncurses/lib/pkgconfig --without-debug --enable-widec --enable-pc-files --enable-overwrite --with-strip-program=/home/runner/cross-toolchain/arm-ev3-linux-gnueabi/bin/arm-ev3-linux-gnueabi-strip"    
 
 # 6. readline
-build_readline
+build_library "readline" "https://ftp.gnu.org/gnu/readline/readline-8.2.tar.gz" "8.2" \
+    "--with-curses"
 
 # 7. bzip2 (特殊处理)
 build_bzip2
