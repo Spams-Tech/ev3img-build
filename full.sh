@@ -47,8 +47,8 @@ main() {
     echo "Step 4: Building Python..."
     bash build_python.sh
     
-#    echo "Step 5: Creating Python DEB package..."
-#    bash create_python_deb.sh
+    echo "Step 5: Creating Python DEB package..."
+    bash create_python_deb.sh
     
     echo "=========================================="
     echo "Build completed successfully!"

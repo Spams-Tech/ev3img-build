@@ -57,32 +57,48 @@ ac_cv_have_long_long_format=yes
 ac_cv_buggy_getaddrinfo=no
 EOF
 
-    export CONFIG_SITE="$src_dir/config.site"
-
     # 首先构建本地 Python（用于交叉编译）
     echo "Building native Python for cross-compilation..."
     rm -rf "$CROSS_BASE/build/python-native"
     mkdir -p "$CROSS_BASE/build/python-native"
     cd "$CROSS_BASE/build/python-native"
 
+    local SAVED_CC="$CC"
+    local SAVED_CXX="$CXX"
+    local SAVED_AR="$AR"
+    local SAVED_RANLIB="$RANLIB"
+    local SAVED_CFLAGS="$CFLAGS"
+    local SAVED_CXXFLAGS="$CXXFLAGS"
+    local SAVED_LDFLAGS="$LDFLAGS"
+    local SAVED_CPPFLAGS="$CPPFLAGS"
+    local SAVED_PKG_CONFIG_PATH="$PKG_CONFIG_PATH"
+
+
     # 清除交叉编译环境变量用于本地编译
-    unset CC CXX AR RANLIB
+    unset CC CXX AR RANLIB CFLAGS CXXFLAGS LDFLAGS CPPFLAGS PKG_CONFIG_PATH
 
     "$src_dir/configure" --prefix="$CROSS_BASE/build/python-native-install"
     make -j$(nproc)
     make install
 
     # 恢复交叉编译环境变量
-    export CC=$CROSS_CC
-    export CXX=$CROSS_CXX
-    export AR=$CROSS_AR
-    export RANLIB=$CROSS_RANLIB
+    export CC="$SAVED_CC"
+    export CXX="$SAVED_CXX"
+    export AR="$SAVED_AR"
+    export RANLIB="$SAVED_RANLIB"
+    export CFLAGS="$SAVED_CFLAGS"
+    export CXXFLAGS="$SAVED_CXXFLAGS"
+    export LDFLAGS="$SAVED_LDFLAGS"
+    export CPPFLAGS="$SAVED_CPPFLAGS"
+    export PKG_CONFIG_PATH="$SAVED_PKG_CONFIG_PATH"
 
     # 交叉编译 Python
     echo "Cross-compiling Python..."
     rm -rf "$build_dir"
     mkdir -p "$build_dir"
     cd "$build_dir"
+
+    export CONFIG_SITE="$src_dir/config.site"
 
     "$src_dir/configure" \
         --host="$CROSS_HOST" \
@@ -93,7 +109,7 @@ EOF
         --enable-optimizations \
         --with-lto \
         --with-openssl="$CROSS_BASE/install/openssl" \
-        --with-build-python="$CROSS_BASE/build/python-native-install/bin/python3"
+        --with-build-python="$CROSS_BASE/build/python-native-install/bin/python3.13"
 
     # 编译
     make -j$(nproc)
