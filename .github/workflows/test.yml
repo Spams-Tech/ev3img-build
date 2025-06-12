@@ -61,3 +61,4 @@ jobs:
           path: |
             ~/cross-compile/packages
             ~/cross-compile/build/python/config.log
+            ~/cross-compile/build/readline/config.log
