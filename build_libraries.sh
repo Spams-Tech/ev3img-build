@@ -177,7 +177,7 @@ build_library "sqlite" "https://www.sqlite.org/2025/sqlite-autoconf-3500000.tar.
 
 # 5. ncurses
 build_library "ncurses" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.5.tar.gz" "6.5" \
-    "--with-shared --with-termlib --with-pkg-config-libdir=/home/runner/cross-compile/install/ncurses/lib/pkgconfig --without-debug --enable-widec --enable-pc-files --with-pkg-config-libdir=/lib/pkgconfig --enable-overwrite --with-strip-program=/home/runner/cross-toolchain/arm-ev3-linux-gnueabi/bin/arm-ev3-linux-gnueabi-strip"    
+    "--with-shared --with-termlib --with-pkg-config-libdir=/home/runner/cross-compile/install/ncurses/lib/pkgconfig --without-debug --enable-widec --enable-pc-files --enable-overwrite --with-strip-program=/home/runner/cross-toolchain/arm-ev3-linux-gnueabi/bin/arm-ev3-linux-gnueabi-strip"    
 
 # 6. readline
 build_library "readline" "https://ftp.gnu.org/gnu/readline/readline-8.2.tar.gz" "8.2" \
