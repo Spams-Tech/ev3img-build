@@ -56,7 +56,12 @@ build_library() {
     if [ -n "$configure_opts" ]; then
         eval "$src_dir/configure --host=$CROSS_HOST --prefix=$install_dir $configure_opts"
     else
-        "$src_dir/configure" --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static
+        if [ $lib_name == "zlib" ]; then
+            # zlib 特殊处理
+            "$src_dir/configure" --prefix="$install_dir"
+        else
+            "$src_dir/configure" --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static
+        fi
     fi
     
     # 编译
