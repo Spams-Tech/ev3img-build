@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build Packages
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  build-python-and-toolchain:
+  build-packages:
     runs-on: ubuntu-22.04
     env:
       CROSS_COMPILE: arm-ev3-linux-gnueabi
@@ -47,9 +47,14 @@ jobs:
           cd ~/cross-toolchain
           ct-ng build -j$(nproc)
           sudo mv ~/x-tools/${CROSS_COMPILE} ~/cross-toolchain/
-          
+      
       - name: Test
         run: |
           chmod +x *.sh
           ./full.sh
-          
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: Packages
+          path: ~/cross-compile/packages
