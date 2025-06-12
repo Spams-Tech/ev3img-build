@@ -63,7 +63,11 @@ build_library() {
             "$src_dir/configure" --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static
         fi
     fi
-    
+    if [ $lib_name == "ncurses"]; then
+        mkdir -p ~/temp-strip
+        ln -s ~/cross-toolchain/arm-ev3-linux-gnueabi/bin/arm-ev3-linux-gnueabi-strip ~/temp-strip/strip
+        export PATH=~/temp-strip:$PATH
+    fi
     # 编译
     echo "Compiling $lib_name..."
     if [ -n "$make_opts" ]; then
@@ -76,6 +80,11 @@ build_library() {
     echo "Installing $lib_name..."
     make install
     
+    if [ $lib_name == "ncurses"]; then
+        rm -rf ~/temp-strip
+        export PATH=$(echo $PATH | sed 's|/home/runner/temp-strip:||')
+    fi
+
     # 记录安装的文件列表
     find "$install_dir" -type f > "$CROSS_BASE/install/${lib_name}_files.list"
     
