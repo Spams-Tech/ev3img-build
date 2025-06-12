@@ -98,7 +98,7 @@ EOF
     find "$pkg_dir/usr" -type f | sed "s|$pkg_dir||" > "$pkg_dir/DEBIAN/files.list"
     
     # 构建 DEB 包
-    dpkg-deb --build "$pkg_dir"
+    dpkg-deb -Zgzip --uniform-compression --build "$pkg_dir"
     
     echo "Created: ${pkg_dir}.deb"
     
