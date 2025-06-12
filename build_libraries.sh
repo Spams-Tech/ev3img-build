@@ -172,7 +172,7 @@ build_openssl
 build_library "libffi" "https://github.com/libffi/libffi/releases/download/v3.4.8/libffi-3.4.8.tar.gz" "3.4.8" ""
 
 # 4. SQLite
-build_library "sqlite" "https://www.sqlite.org/2025/sqlite-autoconf-3500000.tar.gz" "3500000" \
+build_library "sqlite" "https://www.sqlite.org/2025/sqlite-autoconf-3500000.tar.gz" "autoconf-3500000" \
     "--enable-threadsafe --enable-dynamic-extensions --enable-fts5"
 
 # 5. ncurses
