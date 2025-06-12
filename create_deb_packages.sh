@@ -46,6 +46,8 @@ create_library_deb() {
         if [ -d "$pkg_dir/usr/lib" ] && [ "$(ls -A $pkg_dir/usr/lib)" ]; then
             mkdir -p "$pkg_dir/usr/lib/arm-linux-gnueabi"
             find "$pkg_dir/usr/lib" -maxdepth 1 -name "*.so*" -exec mv {} "$pkg_dir/usr/lib/arm-linux-gnueabi/" \;
+            find "$pkg_dir/usr/lib" -maxdepth 1 -name "*.a" -exec mv {} "$pkg_dir/usr/lib/arm-linux-gnueabi/" \;
+            find "$pkg_dir/usr/lib" -maxdepth 1 -name "*.la" -exec mv {} "$pkg_dir/usr/lib/arm-linux-gnueabi/" \;
             find "$pkg_dir/usr/lib" -maxdepth 1 -name "lib*" -type d -exec mv {} "$pkg_dir/usr/lib/arm-linux-gnueabi/" \;
         fi
     fi

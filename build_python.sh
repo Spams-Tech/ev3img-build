@@ -21,8 +21,8 @@ build_python() {
 
     for lib in zlib openssl libffi sqlite ncurses readline bzip2 xz gdbm util-linux; do
         if [ -d "$CROSS_BASE/install/$lib" ]; then
-            all_lib_paths="$all_lib_paths:$CROSS_BASE/install/$lib/lib"
-            all_include_paths="$all_include_paths:$CROSS_BASE/install/$lib/include"
+            all_lib_paths="$all_lib_paths -L$CROSS_BASE/install/$lib/lib"
+            all_include_paths="$all_include_paths -I$CROSS_BASE/install/$lib/include"
             all_pkg_config_paths="$all_pkg_config_paths:$CROSS_BASE/install/$lib/lib/pkgconfig"
         fi
     done
@@ -32,8 +32,8 @@ build_python() {
     export CXX=$CROSS_CXX
     export AR=$CROSS_AR
     export RANLIB=$CROSS_RANLIB
-    export LDFLAGS="-L${all_lib_paths#:}"
-    export CPPFLAGS="-I${all_include_paths#:}"
+    export LDFLAGS="$all_lib_paths"
+    export CPPFLAGS="$all_include_paths"
     export PKG_CONFIG_PATH="${all_pkg_config_paths#:}"
     export CFLAGS="$CFLAGS -fPIC"
     export CXXFLAGS="$CXXFLAGS -fPIC"
