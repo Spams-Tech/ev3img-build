@@ -111,6 +111,9 @@ EOF
         --with-openssl="$CROSS_BASE/install/openssl" \
         --with-build-python="$CROSS_BASE/build/python-native-install/bin/python3.13"
 
+    export QEMU_LD_PREFIX=~/cross-toolchain/arm-ev3-linux-gnueabi/arm-ev3-linux-gnueabi/sysroot
+    export LD_LIBRARY_PATH=$(pwd):$LD_LIBRARY_PATH
+
     # 编译
     make -j$(nproc)
 
