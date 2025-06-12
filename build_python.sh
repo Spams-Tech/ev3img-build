@@ -106,7 +106,6 @@ EOF
         --prefix="$install_dir" \
         --with-ensurepip=no \
         --enable-shared \
-        --enable-optimizations \
         --with-lto \
         --with-openssl="$CROSS_BASE/install/openssl" \
         --with-build-python="$CROSS_BASE/build/python-native-install/bin/python3.13"
