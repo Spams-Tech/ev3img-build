@@ -1,0 +1,55 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-python-and-toolchain:
+    runs-on: ubuntu-22.04
+    env:
+      CROSS_COMPILE: arm-ev3-linux-gnueabi
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Cache Toolchain (Cross)
+        uses: actions/cache@v3
+        id: cache-toolchain
+        with:
+          path: ~/cross-toolchain/arm-ev3-linux-gnueabi
+          key: toolchain-sources-v1-${{ hashFiles('README.md') }}
+        
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y wget tar rsync dpkg-deb gperf bison flex texinfo help2man gawk libtool-bin automake build-essential qemu-user-static
+          echo "${HOME}/cross-toolchain/${CROSS_COMPILE}/bin" >> $GITHUB_PATH
+          
+      - name: Install Crosstool-NG
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: |
+          wget http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.27.0.tar.xz
+          tar xf crosstool-ng-1.27.0.tar.xz
+          cd crosstool-ng-1.27.0
+          ./configure --prefix=/opt/crosstool-ng
+          make -j$(nproc)
+          sudo make install
+          echo "/opt/crosstool-ng/bin" >> $GITHUB_PATH
+          
+      - name: Build Toolchain (Cross)
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/cross-toolchain
+          cp cross.config ~/cross-toolchain/.config
+          cd ~/cross-toolchain
+          ct-ng build -j$(nproc)
+          sudo mv ~/x-tools/${CROSS_COMPILE} ~/cross-toolchain/
+          
+      - name: Test
+        run: |
+          chmod +x *.sh
+          ./full.sh
+          
