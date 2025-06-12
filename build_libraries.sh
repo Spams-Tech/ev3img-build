@@ -105,7 +105,7 @@ build_openssl() {
     
     ./Configure linux-armv4 \
         --prefix="$install_dir" \
-        --cross-compile-prefix=$CROSS_HOST- \
+        --cross-compile-prefix= \
         shared \
         no-asm \
         $CFLAGS
