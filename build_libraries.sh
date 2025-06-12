@@ -37,13 +37,10 @@ build_library() {
         wget "$lib_url" -O "$archive_name"
         
         # 解压并正确重命名目录
+        local extracted_dir="$lib_name"-"$lib_version"
         tar -xzf "$archive_name"
-        
-        local extracted_dir=$(tar -tzf "$archive_name" | head -1 | cut -f1 -d"/")
-        if [ -d "$extracted_dir" ] && [ "$extracted_dir" != "$lib_name" ]; then
-            echo "Renaming $extracted_dir to $lib_name"
-            mv "$extracted_dir" "$lib_name"
-        fi
+        echo "Renaming $extracted_dir to $lib_name"
+        mv "$extracted_dir" "$lib_name"
         
         # 清理压缩包
         rm -f "$archive_name"
@@ -170,7 +167,7 @@ build_openssl
 build_library "libffi" "https://github.com/libffi/libffi/releases/download/v3.4.8/libffi-3.4.8.tar.gz" "3.4.8" ""
 
 # 4. SQLite
-build_library "sqlite" "https://www.sqlite.org/2023/sqlite-autoconf-3500000.tar.gz" "3.50.0" \
+build_library "sqlite" "https://www.sqlite.org/2023/sqlite-autoconf-3500000.tar.gz" "3500000" \
     "--enable-threadsafe --enable-dynamic-extensions --enable-fts5"
 
 # 5. ncurses
