@@ -117,7 +117,7 @@ create_library_deb "openssl" "3.5.0-1" "Secure Sockets Layer toolkit - runtime" 
 
 create_library_deb "libffi" "3.4.8-1" "Foreign Function Interface library runtime" "libc6"
 
-create_library_deb "sqlite" "3.50.0-1" "SQLite 3 shared library" "libc6, libzlib1g"
+create_library_deb "sqlite" "3.50.0-1" "SQLite 3 shared library" "libc6"
 
 create_library_deb "ncurses" "6.5-1" "shared libraries for terminal handling" "libc6"
 

@@ -44,8 +44,8 @@ main() {
     echo "Step 3: Creating library DEB packages..."
     bash create_deb_packages.sh
     
-#    echo "Step 4: Building Python..."
-#    bash build_python.sh
+    echo "Step 4: Building Python..."
+    bash build_python.sh
     
 #    echo "Step 5: Creating Python DEB package..."
 #    bash create_python_deb.sh

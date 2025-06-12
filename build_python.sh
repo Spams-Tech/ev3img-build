@@ -1,0 +1,112 @@
+#!/bin/bash
+
+set -e
+
+source ./setup_environment.sh
+
+build_python() {
+    echo "=========================================="
+    echo "Building Python 3.13.5"
+    echo "=========================================="
+
+    local python_version="3.13.5"
+    local src_dir="$CROSS_BASE/src/python"
+    local build_dir="$CROSS_BASE/build/python"
+    local install_dir="$CROSS_BASE/install/python"
+
+    # 设置所有依赖库的路径
+    local all_lib_paths=""
+    local all_include_paths=""
+    local all_pkg_config_paths=""
+
+    for lib in zlib openssl libffi sqlite ncurses readline bzip2 xz gdbm util-linux; do
+        if [ -d "$CROSS_BASE/install/$lib" ]; then
+            all_lib_paths="$all_lib_paths:$CROSS_BASE/install/$lib/lib"
+            all_include_paths="$all_include_paths:$CROSS_BASE/install/$lib/include"
+            all_pkg_config_paths="$all_pkg_config_paths:$CROSS_BASE/install/$lib/lib/pkgconfig"
+        fi
+    done
+
+    # 设置环境变量
+    export CC=$CROSS_CC
+    export CXX=$CROSS_CXX
+    export AR=$CROSS_AR
+    export RANLIB=$CROSS_RANLIB
+    export LDFLAGS="-L${all_lib_paths#:}"
+    export CPPFLAGS="-I${all_include_paths#:}"
+    export PKG_CONFIG_PATH="${all_pkg_config_paths#:}"
+    export CFLAGS="$CFLAGS -fPIC"
+    export CXXFLAGS="$CXXFLAGS -fPIC"
+
+    # 下载 Python 源码
+    cd "$CROSS_BASE/src"
+    if [ ! -d "python" ]; then
+        echo "Downloading Python..."
+        wget "https://www.python.org/ftp/python/$python_version/Python-$python_version.tar.xz"
+        tar -xf "Python-$python_version.tar.xz"
+        mv "Python-$python_version" python
+    fi
+
+    cd "$src_dir"
+
+    # 创建配置文件
+    cat > config.site << EOF
+ac_cv_file__dev_ptmx=yes
+ac_cv_file__dev_ptc=no
+ac_cv_have_long_long_format=yes
+ac_cv_buggy_getaddrinfo=no
+EOF
+
+    export CONFIG_SITE="$src_dir/config.site"
+
+    # 首先构建本地 Python（用于交叉编译）
+    echo "Building native Python for cross-compilation..."
+    rm -rf "$CROSS_BASE/build/python-native"
+    mkdir -p "$CROSS_BASE/build/python-native"
+    cd "$CROSS_BASE/build/python-native"
+
+    # 清除交叉编译环境变量用于本地编译
+    unset CC CXX AR RANLIB
+
+    "$src_dir/configure" --prefix="$CROSS_BASE/build/python-native-install"
+    make -j$(nproc)
+    make install
+
+    # 恢复交叉编译环境变量
+    export CC=$CROSS_CC
+    export CXX=$CROSS_CXX
+    export AR=$CROSS_AR
+    export RANLIB=$CROSS_RANLIB
+
+    # 交叉编译 Python
+    echo "Cross-compiling Python..."
+    rm -rf "$build_dir"
+    mkdir -p "$build_dir"
+    cd "$build_dir"
+
+    "$src_dir/configure" \
+        --host="$CROSS_HOST" \
+        --build=$(gcc -dumpmachine) \
+        --prefix="$install_dir" \
+        --with-ensurepip=no \
+        --enable-shared \
+        --enable-optimizations \
+        --with-lto \
+        --with-openssl="$CROSS_BASE/install/openssl" \
+        --with-build-python="$CROSS_BASE/build/python-native-install/bin/python3"
+
+    # 编译
+    make -j$(nproc)
+
+    # 安装
+    make altinstall
+
+    # 记录安装文件
+    find "$install_dir" -type f > "$CROSS_BASE/install/python_files.list"
+
+    echo "Python $python_version cross-compilation completed!"
+    echo "Installed to: $install_dir"
+}
+
+# 执行 Python 编译
+build_python
