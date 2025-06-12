@@ -136,7 +136,10 @@ build_readline() {
     make clean || true
 
     ./configure --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static \
-        LIBS="-lncursesw"
+        LIBS="-lncursesw" \
+        CFLAGS="$CFLAGS -I$CROSS_BASE/install/ncurses/include" \
+        CPPFLAGS="$CPPFLAGS -I$CROSS_BASE/install/ncurses/include" \
+        LDFLAGS="$LDFLAGS -L$CROSS_BASE/install/ncurses/lib"
     make -j$(nproc)
     make install
 
