@@ -35,8 +35,10 @@ build_library() {
         echo "Downloading $lib_name..."
         wget "$lib_url" -O "${lib_name}.tar.gz"
         tar -xzf "${lib_name}.tar.gz"
+        ls
         # 重命名解压后的目录为统一的库名
         mv "${lib_name}"* "$lib_name" 2>/dev/null || true
+        ls   
     fi
     
     # 创建构建目录
