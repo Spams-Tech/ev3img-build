@@ -55,7 +55,7 @@ build_library() {
     echo "Configuring $lib_name..."
     if [ -n "$configure_opts" ]; then
         if [ $lib_name == "readline" ]; then
-            "$src_dir/configure" --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static CPPFLAGS="$CPPLAGS -I$CROSS_BASE/install/ncurses/include" CFLAGS="$CFLAGS -I$CROSS_BASE/install/ncurses/include" LDFLAGS="-L$CROSS_BASE/install/ncurses/lib" LIBS="-lncursesw -ltinfow"
+            "$src_dir/configure" --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static CPPFLAGS="$CPPLAGS -I$CROSS_BASE/install/ncurses/include" CFLAGS="$CFLAGS -I$CROSS_BASE/install/ncurses/include" LDFLAGS="-L$CROSS_BASE/install/ncurses/lib"
         fi
         eval "$src_dir/configure --host=$CROSS_HOST --prefix=$install_dir $configure_opts"
     else
@@ -81,10 +81,10 @@ build_library() {
 
     if [ $lib_name == "ncurses" ]; then
         for lib in ncurses form panel menu tinfo ; do
-            rm -vf $install_dir/lib/lib${lib}.so
-            echo "INPUT(-l${lib}w)" > $install_dir/lib/lib${lib}.so
-            ln -sfv ${lib}w.pc        $install_dir/lib/pkgconfig/${lib}.pc
+            ln -sfv lib${lib}w.so $install_dir/lib/lib${lib}.so
+            ln -sfv ${lib}w.pc $install_dir/lib/pkgconfig/${lib}.pc
         done
+        ln -sfv libncursesw.so $install_dir/lib/libcurses.so
     fi
 
     # 记录安装的文件列表
