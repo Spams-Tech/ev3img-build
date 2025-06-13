@@ -19,7 +19,7 @@ check_prerequisites() {
     if [ ${#missing_tools[@]} -gt 0 ]; then
         log_error "Missing required tool(s): ${missing_tools[*]}"
         log_info "Please install them first."
-        log_info "Note that arm-ev3-linux-gnueabi- toolchain can be built using crosstool-ng."
+        log_info "Note that arm-ev3-linux-gnueabi-* toolchain can be built using crosstool-ng and should be installed to $HOME/cross-toolchain/arm-ev3-linux-gnueabi/bin."
         exit 1
     fi
     
