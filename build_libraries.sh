@@ -74,7 +74,15 @@ build_library() {
     else
         make -j$(nproc)
     fi
-    
+
+    if [ $lib_name == "ncurses" ]; then
+        for lib in ncurses form panel menu tinfo ; do
+            rm -vf $install_dir/lib/lib${lib}.so
+            echo "INPUT(-l${lib}w)" > $install_dir/lib/lib${lib}.so
+            ln -sfv ${lib}w.pc        $install_dir/lib/pkgconfig/${lib}.pc
+        done
+    fi
+
     # 安装
     echo "Installing $lib_name..."
     make install
