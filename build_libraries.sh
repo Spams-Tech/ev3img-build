@@ -75,6 +75,10 @@ build_library() {
         make -j$(nproc)
     fi
 
+    # 安装
+    echo "Installing $lib_name..."
+    make install
+
     if [ $lib_name == "ncurses" ]; then
         for lib in ncurses form panel menu tinfo ; do
             rm -vf $install_dir/lib/lib${lib}.so
@@ -82,10 +86,6 @@ build_library() {
             ln -sfv ${lib}w.pc        $install_dir/lib/pkgconfig/${lib}.pc
         done
     fi
-
-    # 安装
-    echo "Installing $lib_name..."
-    make install
 
     # 记录安装的文件列表
     find "$install_dir" -type f > "$CROSS_BASE/install/${lib_name}_files.list"
