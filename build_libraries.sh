@@ -55,7 +55,7 @@ build_library() {
     echo "Configuring $lib_name..."
     if [ -n "$configure_opts" ]; then
         if [ $lib_name == "readline" ]; then
-            "$src_dir/configure" --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static CPPFLAGS="$CPPLAGS -I$CROSS_BASE/install/ncurses/include" CFLAGS="$CFLAGS -I$CROSS_BASE/install/ncurses/include" LDFLAGS="-L$CROSS_BASE/install/ncurses/lib"
+            "$src_dir/configure" --host=$CROSS_HOST --prefix="$install_dir" --enable-shared --disable-static CPPFLAGS="-I$CROSS_BASE/install/ncurses/include" CFLAGS="$CFLAGS -I$CROSS_BASE/install/ncurses/include" LDFLAGS="-L$CROSS_BASE/install/ncurses/lib -lncursesw"
         else
           eval "$src_dir/configure --host=$CROSS_HOST --prefix=$install_dir $configure_opts"
         fi
