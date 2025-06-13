@@ -2,17 +2,12 @@
 
 set -e
 
-echo "=========================================="
-echo "Cross-compilation build system for Lego EV3"
-echo "Target: Debian 10 Buster (armel)"
-echo "Host: $(uname -n)"
-echo "Date: $(date)"
-echo "=========================================="
+source ./setup_environment.sh
 
 # 检查必要工具
 check_prerequisites() {
-    echo "Checking prerequisites..."
-    
+    log_section "Checking prerequisites..."
+
     local missing_tools=()
     
     for tool in arm-ev3-linux-gnueabi-gcc wget tar rsync dpkg-deb; do
@@ -22,47 +17,51 @@ check_prerequisites() {
     done
     
     if [ ${#missing_tools[@]} -gt 0 ]; then
-        echo "Error: Missing required tools: ${missing_tools[*]}"
-        echo "Please install them first."
-        echo "Tips: sudo apt install build-essential debhelper wget rsync"
+        log_error "Missing required tool(s): ${missing_tools[*]}"
+        log_info "Please install them first."
+        log_info "Note that arm-ev3-linux-gnueabi- toolchain can be built using crosstool-ng."
         exit 1
     fi
     
-    echo "All prerequisites satisfied."
+    log_success "All prerequisites satisfied."
 }
 
 # 执行各个构建步骤
 main() {
+    log_section "Build Python 3.13.5 (and some libraries) for Lego EV3"
+    log_info "Target: Debian 10 Buster (armel)"
+    log_info "For Docker image: growflavor/ev3images:ev3dev10imgv02b"
+    log_info "Host: $(uname -n)"
+    log_info "Date: $(date)"
+
     check_prerequisites
-    
-    echo "Step 1: Setting up environment..."
+
+    log_section "Step 1: Setting up the environment"
     bash setup_environment.sh
-    
-    echo "Step 2: Building all libraries..."
+
+    log_section "Step 2: Building libraries"
     bash build_libraries.sh
     
-    echo "Step 3: Creating library DEB packages..."
+    log_section "Step 3: Creating DEB packages for libraries"
     bash create_deb_packages.sh
     
-    echo "Step 4: Building Python..."
+    log_section "Step 4: Building Python"
     bash build_python.sh
     
-    echo "Step 5: Creating Python DEB package..."
+    log_section "Step 5: Creating DEB package for Python"
     bash create_python_deb.sh
     
-    echo "=========================================="
-    echo "Build completed successfully!"
-    echo "=========================================="
-    
-    echo "Generated DEB packages:"
+    log_section "Build completed"
+    log_success "All packages have been built successfully."
+
+    log_info "Generated DEB packages:"
     ls -la ~/cross-compile/packages/*.deb
     
-    echo ""
-    echo "To install on target system:"
-    echo "1. Copy all .deb files to target system"
-    echo "2. Install libraries first: sudo dpkg --force-overwrite -i lib*-cross-armel.deb"
-    echo "3. Install Python: sudo dpkg --force-overwrite -i python3-cross-armel.deb"
-    echo "4. Fix dependencies if needed: sudo apt-get install -f"
+    log_section "Installation Instructions"
+    log_info "To install the packages, follow these steps:"
+    log_info "1. Copy all .deb files to your EV3 device / Docker container."
+    log_info "2. Install libraries first: sudo dpkg -i --force-overwrite <...>.deb"
+    log_info "3. Install Python: sudo dpkg -i --force-overwrite python3*armel.deb"
 }
 
 # 运行主函数

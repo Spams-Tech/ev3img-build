@@ -11,22 +11,24 @@ create_library_deb() {
     local description=$3
     local dependencies=$4
     
-    echo "Creating DEB package for $lib_name..."
-    
+    log_section "Creating $lib_name DEB package"
+
     local install_dir="$CROSS_BASE/install/$lib_name"
     local pkg_dir="$CROSS_BASE/packages/${lib_name}_${version}_armel"
     
     # 检查安装目录是否存在
     if [ ! -d "$install_dir" ]; then
-        echo "Error: Install directory $install_dir does not exist!"
+        log_error "$lib_name install directory $install_dir does not exist!"
         return 1
     fi
     
     # 清理并创建包目录结构
+    log_info "Creating package directory structure..."
     rm -rf "$pkg_dir"
     mkdir -p "$pkg_dir/DEBIAN"
     
     # 复制库文件到包目录，保持目录结构
+    log_info "Copying Python files to package directory..."
     if [ -d "$install_dir" ]; then
         # 创建 usr 目录结构
         mkdir -p "$pkg_dir/usr"
@@ -44,6 +46,7 @@ create_library_deb() {
         
         # 移动库文件到 multiarch 目录
         if [ -d "$pkg_dir/usr/lib" ] && [ "$(ls -A $pkg_dir/usr/lib)" ]; then
+            log_info "Moving library files to multiarch directory..."
             mkdir -p "$pkg_dir/usr/lib/arm-linux-gnueabi"
             find "$pkg_dir/usr/lib" -maxdepth 1 -name "*.so*" -exec mv {} "$pkg_dir/usr/lib/arm-linux-gnueabi/" \;
             find "$pkg_dir/usr/lib" -maxdepth 1 -name "*.a" -exec mv {} "$pkg_dir/usr/lib/arm-linux-gnueabi/" \;
@@ -56,13 +59,14 @@ create_library_deb() {
     local installed_size=$(du -sk "$pkg_dir/usr" | cut -f1)
     
     # 创建控制文件
+    log_info "Creating control file..."
     cat > "$pkg_dir/DEBIAN/control" << EOF
 Package: lib${lib_name}-cross-armel
 Version: ${version}
 Section: libs
 Priority: optional
 Architecture: armel
-Maintainer: ianchb <i@4t.pw>
+Maintainer: spamstech <hi@spams.tech>
 Installed-Size: ${installed_size}
 Description: ${description}
  Cross-compiled ${lib_name} library for ARM architecture (armel).
@@ -75,6 +79,7 @@ EOF
     fi
     
     # 创建 postinst 脚本
+    log_info "Creating postinst script..."
     cat > "$pkg_dir/DEBIAN/postinst" << 'EOF'
 #!/bin/bash
 set -e
@@ -85,6 +90,7 @@ EOF
     chmod 755 "$pkg_dir/DEBIAN/postinst"
     
     # 创建 postrm 脚本
+    log_info "Creating postrm script..."
     cat > "$pkg_dir/DEBIAN/postrm" << 'EOF'
 #!/bin/bash
 set -e
@@ -98,18 +104,19 @@ EOF
     find "$pkg_dir/usr" -type f | sed "s|$pkg_dir||" > "$pkg_dir/DEBIAN/files.list"
     
     # 构建 DEB 包
+    log_info "Building DEB package..."
     dpkg-deb -Zgzip --uniform-compression --build "$pkg_dir"
     
-    echo "Created: ${pkg_dir}.deb"
-    
+    log_success "Created: ${pkg_dir}.deb"
+
     # 验证包
-    echo "Package info:"
+    log_info "Package info:"
     dpkg-deb -I "${pkg_dir}.deb"
     echo ""
 }
 
 # 创建所有库的 DEB 包
-echo "Creating DEB packages for all libraries..."
+log_section "Creating DEB packages for all libraries"
 
 create_library_deb "zlib" "1.3.1-1" "Compression library - runtime" "libc6"
 
@@ -131,6 +138,6 @@ create_library_deb "gdbm" "1.25-1" "GNU dbm database routines (runtime version)"
 
 create_library_deb "util-linux" "2.40.4-1" "miscellaneous system utilities - runtime libraries" "libc6"
 
-echo "All DEB packages created successfully!"
-echo "Packages location: $CROSS_BASE/packages/"
+log_success "All DEB packages created successfully!"
+log_info "Packages location: $CROSS_BASE/packages/"
 ls -la "$CROSS_BASE/packages/"*.deb

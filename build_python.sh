@@ -5,9 +5,7 @@ set -e
 source ./setup_environment.sh
 
 build_python() {
-    echo "=========================================="
-    echo "Building Python 3.13.5"
-    echo "=========================================="
+    log_section "Building Python 3.13.5"
 
     local python_version="3.13.5"
     local src_dir="$CROSS_BASE/src/python"
@@ -41,7 +39,7 @@ build_python() {
     # 下载 Python 源码
     cd "$CROSS_BASE/src"
     if [ ! -d "python" ]; then
-        echo "Downloading Python..."
+        log_info "Downloading Python..."
         wget "https://www.python.org/ftp/python/$python_version/Python-$python_version.tar.xz"
         tar -xf "Python-$python_version.tar.xz"
         mv "Python-$python_version" python
@@ -50,6 +48,7 @@ build_python() {
     cd "$src_dir"
 
     # 创建配置文件
+    log_info "Creating config.site for cross compilation..."
     cat > config.site << EOF
 ac_cv_file__dev_ptmx=yes
 ac_cv_file__dev_ptc=no
@@ -58,7 +57,7 @@ ac_cv_buggy_getaddrinfo=no
 EOF
 
     # 首先构建本地 Python（用于交叉编译）
-    echo "Building native Python for cross-compilation..."
+    log_info "Building native Python for cross compilation..."
     rm -rf "$CROSS_BASE/build/python-native"
     mkdir -p "$CROSS_BASE/build/python-native"
     cd "$CROSS_BASE/build/python-native"
@@ -77,8 +76,13 @@ EOF
     # 清除交叉编译环境变量用于本地编译
     unset CC CXX AR RANLIB CFLAGS CXXFLAGS LDFLAGS CPPFLAGS PKG_CONFIG_PATH
 
+    log_info "Configuring native Python..."
     "$src_dir/configure" --prefix="$CROSS_BASE/build/python-native-install"
+
+    log_info "Compiling native Python..."
     make -j$(nproc)
+
+    log_info "Installing native Python..."
     make install
 
     # 恢复交叉编译环境变量
@@ -93,13 +97,14 @@ EOF
     export PKG_CONFIG_PATH="$SAVED_PKG_CONFIG_PATH"
 
     # 交叉编译 Python
-    echo "Cross-compiling Python..."
+    log_info "Building Python..."
     rm -rf "$build_dir"
     mkdir -p "$build_dir"
     cd "$build_dir"
 
     export CONFIG_SITE="$src_dir/config.site"
 
+    log_info "Configuring Python..."
     "$src_dir/configure" \
         --host="$CROSS_HOST" \
         --build=$(gcc -dumpmachine) \
@@ -114,16 +119,19 @@ EOF
     export LD_LIBRARY_PATH=$(pwd):$LD_LIBRARY_PATH
 
     # 编译
+    log_info "Compiling Python..."
     make -j$(nproc)
 
     # 安装
+    log_info "Installing Python..."
     make altinstall
 
     # 记录安装文件
     find "$install_dir" -type f > "$CROSS_BASE/install/python_files.list"
+    log_info "File list saved to $CROSS_BASE/install/python_files.list"
 
-    echo "Python $python_version cross-compilation completed!"
-    echo "Installed to: $install_dir"
+    log_success "Python $python_version successfully built!"
+    log_info "Installed to: $install_dir"
 }
 
 # 执行 Python 编译
