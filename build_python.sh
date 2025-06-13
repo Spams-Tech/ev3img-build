@@ -30,7 +30,7 @@ build_python() {
     export CXX=$CROSS_CXX
     export AR=$CROSS_AR
     export RANLIB=$CROSS_RANLIB
-    export LDFLAGS="$all_lib_paths"
+    export LDFLAGS="-lncursesw -ltinfow$all_lib_paths"
     export CPPFLAGS="$all_include_paths"
     export PKG_CONFIG_PATH="${all_pkg_config_paths#:}"
     export CFLAGS="$CFLAGS -fPIC"
